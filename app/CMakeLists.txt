@@ -1,0 +1,2 @@
+add_executable(vecs2pauli_app vecs2pauli_app.cpp)
+target_link_libraries(vecs2pauli_app PRIVATE vecs2pauli)

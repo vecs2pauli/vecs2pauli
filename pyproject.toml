@@ -1,0 +1,31 @@
+[build-system]
+requires = [
+    "setuptools>=61",
+    "wheel",
+    "scikit-build",
+    "cmake>=3.9",
+    "pybind11[global]==2.10.4"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vecs2pauli"
+version = "0.0.1"
+readme = "README.md"
+maintainers = [
+    { name = "Tim Coopmans" },
+]
+requires-python = ">=3.8"
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "License :: OSI Approved :: MIT License",
+]
+dependencies = [
+    "numpy==1.26.2",
+    "pytest==7.4.3"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]

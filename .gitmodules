@@ -1,0 +1,7 @@
+[submodule "extern/binarylinalg"]
+	path = extern/binarylinalg
+	url = git@github.com:vecs2pauli/binarylinalg.git
+[submodule "extern/dd_package"]
+	path = extern/dd_package
+	url = git@github.com:vecs2pauli/dd_package.git
+	branch = limdd
