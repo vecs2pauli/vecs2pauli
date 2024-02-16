@@ -17,11 +17,19 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [
-          ubuntu-latest,
-          #macos-latest,
-          #windows-2019,
-        ]
+         # currently limiting for testing. When done, remove and replace by uncommented below
+         os_and_dist: [
+           {os: ubuntu-latest, dist:cp311-manylinux_x68_64}
+         ]
+#        os: [
+#          ubuntu-latest,
+#          #macos-latest,
+#          #windows-2019,
+#        ]
+
+    # currently for testing. When done, reove 'env' and CIBW_BUILD alltogether
+    env:
+      CIBW_BUILD: "${{ matrix.os_dist.dist }}"
     steps:
     - uses: actions/checkout@v3
       with:
@@ -39,14 +47,3 @@ jobs:
       with:
         name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
         path: ./dist/*.whl
-
-    # building distributions
-#    - name: Install pypa/build
-#      run: python -m pip install build --user
-#    - name: Build binary wheel
-#      run: python -m build
-#    - name: Store the dist packages
-#      uses: actions/upload-artifact@v3
-#      with:
-#        name: Python distribution packages
-#        path: dist/
