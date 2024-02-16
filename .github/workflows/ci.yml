@@ -11,27 +11,16 @@ on:
 
 jobs:
   build:
-
-    # check out the project
     name: Build distribution
-    # currently for testing. When done, replace by
-    #runs-on: ${{ matrix.os }}
-    runs-on: ${{ matrix.os_and_dist.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-         # currently limiting for testing. When done, remove and replace by uncommented below
-         os_and_dist: [
-           {os: ubuntu-latest, dist: cp311-manylinux_x86_64},
-         ]
-#        os: [
-#          ubuntu-latest,
-#          #macos-latest,
-#          #windows-2019,
-#        ]
+        os: [
+          ubuntu-latest,
+          macos-latest,
+          windows-2019,
+        ]
 
-    # currently for testing. When done, reove 'env' and CIBW_BUILD alltogether
-    env:
-      CIBW_BUILD: "${{ matrix.os_and_dist.dist }}"
     steps:
     - uses: actions/checkout@v3
       with:
