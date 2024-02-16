@@ -19,8 +19,8 @@ jobs:
       matrix:
         name: [
           {os: ubuntu-latest},
-          {os: macos-latest},
-          {os: windows-2019},
+          #{os: macos-latest},
+          #{os: windows-2019},
         ]
     steps:
     - uses: actions/checkout@v3
@@ -31,9 +31,9 @@ jobs:
 
     # building distributions
     - name: Install pypa/build
-      run: python3 -m pip install build --user
+      run: python3 -m pip install pybind11 scikit-build --user
     - name: Build binary wheel
-      run: python3 -m build
+      run: python3 setup.py sdist
     - name: Store the dist packages
       uses: actions/upload-artifact@v3
       with:
