@@ -1,0 +1,41 @@
+name: Publish python distribution to TestPyPI
+on:
+  push:
+    branches:
+      - 1-github-actions
+    tags:
+      - v*
+    pull_request:
+      branches:
+        - 1-github-actions
+
+jobs:
+  build:
+
+    # check out the project
+    name: Build distribution
+    runs-on: ${{ matrix.name.os }}
+    strategy:
+      matrix:
+        name: [
+          {os: ubuntu-latest},
+          {os: macos-latest},
+          {os: windows-2019},
+        ]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up the latest Python3
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.x"
+
+    # building distributions
+    - name: Install pypa/build
+      run: python3 -m pip install build --user
+    - name: Build binary wheel
+      run: python3 -m build
+    - name: Store the dist packages
+      uses: actions/upload-artifact@v3
+      with:
+        name: Python distribution packages
+        path: dist/
