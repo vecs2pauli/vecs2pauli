@@ -1,13 +1,8 @@
 name: Generate python distributions
 on:
   push:
-    branches:
-      - 1-github-actions
     tags:
       - v*
-    pull_request:
-      branches:
-        - 1-github-actions
 
 jobs:
   build:
