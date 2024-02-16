@@ -31,7 +31,7 @@ jobs:
 
     # currently for testing. When done, reove 'env' and CIBW_BUILD alltogether
     env:
-      CIBW_BUILD: "${{ matrix.os_dist.dist }}"
+      CIBW_BUILD: "${{ matrix.os_and_dist.dist }}"
     steps:
     - uses: actions/checkout@v3
       with:
