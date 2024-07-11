@@ -30,10 +30,8 @@ inline void rowsum(const size_t num_rows, const size_t num_qubits, const size_t 
     assert(row_b >= 0);
     assert(row_a < num_rows);
     assert(row_b < num_rows);
-    for(size_t i=0;i<num_columns;i++){
-        matrix[row_b][i] ^= matrix[row_a][i];
-    }
 
+    //set the phase bit
     size_t g = 0;
     bool xone, xtwo, zone, ztwo;
     for(size_t i=0;i<num_qubits;i++){
@@ -56,7 +54,20 @@ inline void rowsum(const size_t num_rows, const size_t num_qubits, const size_t 
             }
         }
     }
-    if((g % 4) == 2){matrix[row_b][num_columns - 1] ^= 1;}
+    g += 2 * ((size_t) (matrix[row_a][num_columns - 1]) + (size_t) (matrix[row_b][num_columns - 1]));
+    if((g % 4) == 2){
+	matrix[row_b][num_columns - 1] = 1;
+    }
+    else{
+	matrix[row_b][num_columns - 1] = 0;
+    }
+
+    // set all other bits
+    for(size_t i=0;i<num_columns - 1;i++){
+        matrix[row_b][i] ^= matrix[row_a][i];
+    }
+
+
 }
 
 
@@ -363,7 +374,7 @@ py::array_t<double> bringStabilizerListIntoRREF(py::array_t<bool> check_matrix){
 	  size_t num_rows = check_matrix.shape()[0];
 	  size_t num_columns = check_matrix.shape()[1];
 	  size_t num_variables = num_columns - 1;
-	  assert(num_variables % 2 == 0);
+	  assert(num_columns % 2 == 1);
 	  size_t num_qubits = (size_t) (num_variables / 2);
 
 	  py::buffer_info buf = check_matrix.request();
