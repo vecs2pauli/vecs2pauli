@@ -12,6 +12,7 @@
 extern "C" {
 #endif
 	#include "binarylinalg/include/extend_check_matrix.h"
+	#include "binarylinalg/include/matrix.h"
 #ifdef __cplusplus
 }
 #endif
@@ -19,6 +20,94 @@ extern "C" {
 namespace py = pybind11;
 
 namespace dd {
+
+/**
+ * Algorithm from Aaronson & Gottesman, PRA, 2004
+ */
+inline void rowsum(const size_t num_rows, const size_t num_qubits, const size_t row_a, const size_t row_b, bool ** matrix){
+    const size_t num_columns = 2 * num_qubits + 1;
+    assert(row_a >= 0);
+    assert(row_b >= 0);
+    assert(row_a < num_rows);
+    assert(row_b < num_rows);
+    for(size_t i=0;i<num_columns;i++){
+        matrix[row_b][i] ^= matrix[row_a][i];
+    }
+
+    size_t g = 0;
+    bool xone, xtwo, zone, ztwo;
+    for(size_t i=0;i<num_qubits;i++){
+        xone = matrix[row_a][i];
+        zone = matrix[row_a][i + num_qubits];
+        xtwo = matrix[row_b][i];
+        ztwo = matrix[row_b][i + num_qubits];
+        
+        if(!xone){
+            if(zone){
+                g += xtwo * (1 - 2 * ztwo);
+            }
+        }
+        else{
+            if(!zone){
+                g += ztwo * (2 * xtwo - 1);
+            }
+            else{
+                g += ztwo - xtwo;
+            }
+        }
+    }
+    if((g % 4) == 2){matrix[row_b][num_columns - 1] ^= 1;}
+}
+
+
+/**
+ *
+ * Returns: highest row index of all rows which do *not* contain only zeroes.
+ *
+ * Developer note: copied from binarylinalg/include/matrix.c `bring_into_rref`, except for the following detail: adding rows is not done bitwise modulo two (using `add_row` from the same file) but instead using the `rowsum` function. This correctly updates the phase bit.
+ */ 
+size_t bring_stabilizer_list_into_rref(const size_t num_rows, const size_t num_qubits, const size_t max_row, const size_t max_column, bool** matrix){
+        const size_t num_columns = 2 * num_qubits + 1;
+	assert(num_rows > 0);
+	assert(num_columns > 0);
+	assert(max_row <= num_rows);
+	assert(max_column <= num_columns);
+
+	size_t top_row = 0;
+	size_t current_column = 0;
+
+	size_t current_row;
+	size_t row_ix;
+
+	while(top_row < max_row && current_column < max_column){
+		
+		// find smallest row index 'current_row' among {top_row, top_row+1,...,max_row} such that matrix[current_row][current_row] = true
+		current_row = top_row;
+		while(current_row<max_row && !matrix[current_row][current_column]){current_row++;}
+		if(current_row != max_row)
+		{
+			// row index found!
+
+			// TODO if not working, replace 'insert_row' by 'swap_rows'
+			swap_rows(num_rows, current_row, top_row, matrix);
+			//insert_row(num_rows, current_row, top_row, matrix);
+			
+			//NOTE: if the for loop below starts at top_row+1, then only brings into upper triangular form, not in RREF (I think, should doublecheck)
+			for(row_ix=0;row_ix<max_row;row_ix++){
+				if(row_ix!=top_row && matrix[row_ix][current_column] == true){
+					rowsum(num_rows, num_qubits, top_row, row_ix, matrix);
+				}
+			}
+			top_row++;
+			current_column++;
+		}
+		else{
+			// no row index found, hence entire remainder of the column consists of zeroes
+			current_column++;
+		}
+	}
+	return top_row;
+}
 
 void printOutput(dd::PauliLIMCoset res, std::vector<std::complex<double>> vec1){
     std::cout << "Result: PauliLIMCoset = (";
@@ -264,6 +353,67 @@ py::array_t<double> extend_check_matrix(py::array_t<bool> check_matrix){
         return a;
 }
 
+
+py::array_t<double> bringStabilizerListIntoRREF(py::array_t<bool> check_matrix){
+	  // check input dimensions
+	  if ( check_matrix.ndim()     != 2 )
+	  {
+	    throw std::runtime_error("Input should be 2-D NumPy array");	
+	  }
+	  size_t num_rows = check_matrix.shape()[0];
+	  size_t num_columns = check_matrix.shape()[1];
+	  size_t num_variables = num_columns - 1;
+	  assert(num_variables % 2 == 0);
+	  size_t num_qubits = (size_t) (num_variables / 2);
+
+	  py::buffer_info buf = check_matrix.request();
+	  bool* ptr = (bool*) buf.ptr;
+
+	
+	  //allocate
+        bool** output_check_matrix = (bool**) malloc(sizeof(bool*) * num_rows);
+        bool* row;
+    for(size_t i=0;i<num_rows;i++){
+    	row = (bool*) malloc(sizeof(bool) * (num_columns));
+	*(output_check_matrix + i) = &(row[0]);
+    }
+
+    //copy
+    for(size_t i=0;i<num_rows;i++){
+    	for(size_t j=0;j<num_columns;j++){
+	    *(*(output_check_matrix + i) + j) = ptr[i * num_columns + j];
+	}
+    }
+
+    //bring into rref
+    const size_t max_row = num_rows;
+    const size_t max_column = num_columns;
+    size_t num_resulting_rows = bring_stabilizer_list_into_rref(num_rows, num_qubits, max_row, max_column, output_check_matrix);
+
+        constexpr size_t elsize = sizeof(bool);
+        size_t shape[2]{num_resulting_rows, num_columns};
+        size_t strides[2]{num_columns * elsize,elsize};
+        auto a = py::array_t<bool>(shape, strides);
+        auto view = a.mutable_unchecked<2>();
+
+        for(size_t i = 0; i < a.shape(0); i++)
+        {
+          for(size_t j = 0; j < a.shape(1); j++)
+          {
+              view(i,j) = *(*(output_check_matrix + i) + j);
+          }
+        }
+
+	//clean up
+    for(size_t i=0;i<num_qubits;i++){
+	    free(output_check_matrix[i]);
+    }
+
+
+        return a;
+}
+
+
 }
 
 namespace vecs2pauli{
@@ -279,6 +429,7 @@ PYBIND11_MODULE(_vecs2pauli, m) {
     m.def("_intersect_stabilizer_groups", &dd::intersectGroups, "intersect 2 groups of Pauli strings");
     m.def("_extend_check_matrix", &dd::extend_check_matrix, "extend a nonmaximal check matrix to a maximal one");
     m.def("_intersect_cosets", &dd::intersectCosets, "intersect cosets");
+    m.def("_stabilizerRREF", &dd::bringStabilizerListIntoRREF, "stabilizer generator list into RREF");
 }
 
 } // namespace vecs2pauli

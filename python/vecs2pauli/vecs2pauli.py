@@ -1,7 +1,21 @@
-from vecs2pauli._vecs2pauli import _get_local_pauli_transformations, _get_stabilizers, _intersect_stabilizer_groups, _intersect_cosets
+from vecs2pauli._vecs2pauli import _get_local_pauli_transformations, _get_stabilizers, _intersect_stabilizer_groups, _intersect_cosets, _stabilizerRREF
 from vecs2pauli.converter import _add_plus_in_front_of_string_if_necessary, _remove_plus_in_front_of_string_if_present
 
 
+def rref(check_matrix):
+    """
+    Example usage:
+    >>> cm = np.array([[True, True, False, False, False],
+    >>>                [False, False, True, True, False],
+    >>>                [True, True, True, True, True],
+    >>>                [True, True, True, True, True]])
+    >>> a = vtp.stabilizerRREF(cm)
+    >>> # [[1. 1. 0. 0. 0.]
+    >>> #  [0. 0. 1. 1. 0.]]
+    """
+    # TODO assert that each pair of rows of the check matrix commutes
+    # TODO assert that input is of correct shape
+    return _stabilizerRREF(check_matrix)
 
 
 def get_local_pauli_transformations(source_vec, target_vec):
