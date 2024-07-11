@@ -143,8 +143,9 @@ Could not find a package configuration file provided by "pybind11" with any of t
 ```
 then install pybind11 using pip and add 
 
-- for Linux: `export CMAKE_PREFIX_PATH=mypythondir/lib/python3.11/site-packages/pybind11/share/cmake/pybind11/`
+- for Linux: `export CMAKE_PREFIX_PATH=mypythondir/lib/python3.11/site-packages/pybind11/share/cmake/pybind11/` (replace "python3.11" by the current version you have; for example if you have Python 3.12, then use "python3.12")
 - for Windows: `set CMAKE_PREFIX_PATH=mypythondir\Lib\site-packages\pybind11\share\cmake\pybind11\`
+
 
 where `mypythondir` is the full path to where your python is installed, for example your virtual environment directory.
 
