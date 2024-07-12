@@ -1,5 +1,5 @@
 import numpy as np
-from vecs2pauli._vecs2pauli import _expand_generators
+from vecs2pauli._vecs2pauli import _expand_generators, _stabilizerRREF
 
 def _add_plus_in_front_of_string_if_necessary(string):
     if string[0] != "-":
@@ -12,6 +12,23 @@ def _remove_plus_in_front_of_string_if_present(string):
         return string[1:]
     else:
         return string
+
+
+def rref(check_matrix):
+    """
+    Example usage:
+    >>> cm = np.array([[True, True, False, False, False],
+    >>>                [False, False, True, True, False],
+    >>>                [True, True, True, True, True],
+    >>>                [True, True, True, True, True]])
+    >>> a = vtp.stabilizerRREF(cm)
+    >>> # [[1. 1. 0. 0. 0.]
+    >>> #  [0. 0. 1. 1. 0.]]
+    """
+    # TODO assert that each pair of rows of the check matrix commutes
+    # TODO assert that input is of correct shape
+    return _stabilizerRREF(check_matrix)
+
 
 
 
@@ -248,13 +265,16 @@ class GeneratorList:
             self.generators = None
         else:
             self.generators = []
+        self._initialise(data=data)
+    
+    def _initialise(self, data=None):
+        try:
+            self.from_check_matrix(check_matrix=data)
+        except:
             try:
-                self.from_check_matrix(check_matrix=data)
+                self.from_string_list(strings=data)
             except:
-                try:
-                    self.from_string_list(strings=data)
-                except:
-                    raise TypeError("Input to GeneratorList not in known format")
+                raise TypeError("Input to GeneratorList not in known format")
 
     @property
     def num_generators(self):
@@ -273,11 +293,46 @@ class GeneratorList:
         self.generators = new_generators
         return 2 ** self.num_generators
 
-    def reduce(self):
-        if not self._reduced:
-            # TODO fill
-            pass
+    def reduce(self, force=False):
+        """
+        Example:
+    
+        >>> gc = vtp.converter.GeneratorList(data=["-XXX", "+YYX"])
+        >>> print(gc.to_string_list())
+        >>> # ["-XXX", "+YYY"]
+        >>> 
+        >>> gc.reduce()
+        >>> print(gc.to_string_list())
+        >>> # ["-XXX", "+ZZI"]
+        """
+        if not self._reduced or force:
+            reduced_cm = rref(self.to_check_matrix())
+            self._initialise(data=reduced_cm)
             self._reduced = True
+
+    def is_equivalent_to(self, other, force_reduce=True):
+        """
+        Returns whether this GeneratorList generates precisely
+        the same stabiliser group as GeneratorList `other`.
+
+        Example usage:
+
+        >>> # The following two generator lists are equivalent, as
+        >>> # ZZ * XX = (-1) * YY, so -XXX * -ZZI = -YYX
+        >>> ga = vtp.converter.GeneratorList(data=["-XXX", "-ZZI"])
+        >>> gb = vtp.converter.GeneratorList(data=["-YYX", "-ZZI"])
+        >>> 
+        >>> # As python objects, these two are not equal:
+        >>> print(ga == gb)
+        >>> # False
+        >>> 
+        >>> # However, they are equivalent:
+        >>> print(ga.is_equivalent_to(gb))
+        >>> # True
+        """
+        self.reduce(force=force_reduce)
+        other.reduce(force=force_reduce)
+        return np.all(self.to_check_matrix() == other.to_check_matrix())
 
     def add(self, generator, reduce=False):
         if reduce:
@@ -327,6 +382,9 @@ class GeneratorList:
 
     def to_string_list(self):
         return [str(generator) for generator in self.generators]
+
+    def __str__(self):
+        return "GeneratorList: " + str(self.to_string_list())
 
     def _check_all_commute(self):
         for gen_a in self.generators:
