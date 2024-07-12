@@ -416,7 +416,7 @@ py::array_t<double> bringStabilizerListIntoRREF(py::array_t<bool> check_matrix){
         }
 
 	//clean up
-    for(size_t i=0;i<num_qubits;i++){
+    for(size_t i=0;i<num_rows;i++){
 	    free(output_check_matrix[i]);
     }
 
